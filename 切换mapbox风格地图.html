@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Change a map's style</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='/js/mapbox-gl.js'></script>
+    <link href='/css/mapbox-gl.css' rel='stylesheet' />
+    <link rel="shortcut icon" href="/favicon.ico" /> 
+    <link rel="bookmark" href="/favicon.ico" type="image/x-icon"　/> 
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+    </style>
+</head>
+<body>
+
+<style>
+    #menu {
+        position: absolute;
+        background: #fff;
+        padding: 10px;
+        font-family: 'Open Sans', sans-serif;
+    }
+</style>
+
+<div id='map'></div>
+<div id='menu'>
+    <input id='basic' type='radio' name='rtoggle' value='basic' checked='checked'>
+    <label for='basic'>basic</label>
+    <input id='streets' type='radio' name='rtoggle' value='streets'>
+    <label for='streets'>streets</label>
+    <input id='bright' type='radio' name='rtoggle' value='bright'>
+    <label for='bright'>bright</label>
+    <input id='light' type='radio' name='rtoggle' value='light'>
+    <label for='light'>light</label>
+    <input id='dark' type='radio' name='rtoggle' value='dark'>
+    <label for='dark'>dark</label>
+    <input id='satellite' type='radio' name='rtoggle' value='satellite'>
+    <label for='satellite'>satellite</label>
+</div>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiemhhbmdjYW55dTEyMyIsImEiOiJja2FmNjN2eTEwY2lmMnRtdnA4YjB5N2sxIn0.qoR7Pwgakh7CaAqFHjisgQ';
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/basic-v9',
+    zoom: 13,
+    center: [4.899, 52.372]
+});
+// var map = new mapboxgl.Map({
+//       container: 'map', // container id
+//       style: {
+//         "version": 8,
+//         //      style: 'mapbox://styles/mapbox/basic-v9',
+//         //      "sprite": "mapbox://sprites/mapbox/streets-v8",
+//         "sprite": "./sprite",
+//         "glyphs": "./font/{fontstack}/{range}.pbf",
+//         "sources": {
+//           "osm-tiles": {
+//             "type": "raster",
+//             'tiles': [
+//                   "http://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
+//               ],
+//             'tileSize': 256
+//           }
+//         },
+//         "layers": [{
+//           "id": "simple-tiles",
+//           "type": "raster",
+//           "source": "osm-tiles",
+//           "minzoom": 0,
+//           "maxzoom": 22
+//         }]
+//       },
+//       center: [-96, 37.8],
+//       zoom: 3
+//     });
+
+var layerList = document.getElementById('menu');
+var inputs = layerList.getElementsByTagName('input');
+
+function switchLayer(layer) {
+    var layerId = layer.target.id;
+    map.setStyle('mapbox://styles/mapbox/' + layerId + '-v9');
+}
+
+for (var i = 0; i < inputs.length; i++) {
+    inputs[i].onclick = switchLayer;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,168 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset='utf-8' />
+  <title>用mapboxGL叠加百度地图</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <script src='js/mapbox-gl.js'></script>
+  <link href='css/mapbox-gl.css' rel='stylesheet' />
+  <!-- <script src='js/GeoGlobeJS.debug.js'></script> -->
+  <script src="js/GeoGlobeJS.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #baiduMap {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id='baiduMap'></div>
+  <script>
+    var mapCfg = 't:water|e:g|c:#05325B,t:land|e:g|c:#051128,t:boundary|e:a|c:#040507,t:railway|e:g|v:off,t:highway|e:g|c:#040507,t:highway|e:g.f|c:#040507,t:highway|e:l|v:off,t:arterial|e:g|c:#040507,t:arterial|e:g.f|c:#040507,t:poi|e:g|v:off,t:poi|e:l|v:off,t:green|e:g|c:#056197|v:off,t:subway|e:g|v:off,t:subway|e:l|v:off,t:manmade|e:g|v:off,t:local|e:g|v:off,t:arterial|e:l|v:off,t:boundary|e:g.f|c:#029fd4,t:building|e:g|c:#022D5A,t:label|e:a|v:off';
+    //百度地图
+    var bdurl = 'http://api2.map.bdimg.com/customimage/tile?&x={x}&y={y}&z={z}&udt=20181106&scale=1&styles=' + encodeURIComponent(mapCfg);
+    //路况
+    var trafficUrl = "http://its.map.baidu.com:8002/traffic/TrafficTileService?time=${time_num}&v=016&level={z}&x={x}&y={y}";
+    //路况预测
+    var predictUrl = "http://its.map.baidu.com:8002/traffic/HistoryService?day=1&hour=9&t=${time_num}&level={z}&x={x}&y={y}";
+    var style = {
+      version: 8,
+      sources: {
+        bd: {
+          type: "raster",
+          rasterType: "baidu",
+          tiles: [bdurl],
+          tileSize: 256
+        },
+        //实时路况
+        traffic: {
+          type: "raster",
+          rasterType: "baidu",
+          tiles: [trafficUrl],
+          tileSize: 256
+        },
+        //路况预测
+        predict: {
+          type: "raster",
+          rasterType: "baidu",
+          tiles: [predictUrl],
+          tileSize: 256
+        }
+      },
+      layers: [
+        {
+          id: "baidu",
+          type: "raster",
+          source: "bd",
+          paint: {}
+        },
+        {
+          id: "traffic",
+          type: "raster",
+          source: "traffic",
+          paint: {
+            "raster-saturation": 0.45,
+            "raster-contrast": 0.8,
+            "raster-brightness-max": 0.5,
+            "raster-brightness-min": 0,
+            "raster-fade-duration": 0
+          }
+        },
+        {
+          id: "predict",
+          type: "raster",
+          source: "predict",
+          layout: {
+            visibility: "none"
+          },
+          paint: {
+            "raster-saturation": 0.45,
+            "raster-contrast": 0.8,
+            "raster-brightness-max": 0.5,
+            "raster-brightness-min": 0,
+            "raster-fade-duration": 0
+          }
+        }
+      ]
+    };
+
+    var bd_mapcrs = {
+      topTileExtent: [-33554432, -33554432, 33554432, 33554432], //墨卡托（百度）
+      coordtransform: {
+        toViewCoord: function (x, y) {
+          //墨卡托（百度）转经纬，界面鼠标交互展示经纬度
+          var lng = (180 * x) / 20039508.342789;
+          var lat =
+            (180 / Math.PI) *
+            (2 * Math.atan(Math.exp((y / 19917990) * Math.PI)) - Math.PI / 2);
+          var lnglat = [lng, lat];
+          return lnglat;
+        },
+        fromViewCoord: function (lng, lat) {
+          //经纬转墨卡托（百度）
+          var x = (lng * 20039508.342789) / 180;
+          var y =
+            (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / Math.PI) *
+            19917990;
+          var xy = [x, y];
+          return xy;
+        }
+      }
+    };
+    //构造地图对象实例
+    var bd_map = new GeoGlobe.Map({
+      mapCRS: bd_mapcrs,
+      maxBounds: [[-180, -85.05113], [180, 85.05113]],
+      renderWorldCopies: false,
+      style: style,
+      container: "baiduMap",
+      zoom: 13,
+      center: [114.39532134, 30.5423194867]
+    });
+    bd_map.setMinZoom(12);
+    
+    //加载路况预测瓦片
+    function addPredict(day, hour) {
+      var map = this.map;
+      var $this = this;
+      var id = "" + new Date().getTime() + "";
+      $this.predictId = id;
+      var predictUrl =
+        "http://its.map.baidu.com:8002/traffic/HistoryService?day=" +
+        day +
+        "&hour=" +
+        hour +
+        "&t=${time_num}&level={z}&x={x}&y={y}";
+      map.addLayer({
+        id: id,
+        type: "raster",
+        source: {
+          type: "raster",
+          rasterType: "baidu",
+          tiles: [predictUrl],
+          tileSize: 256
+        },
+        layout: {},
+        paint: {
+          "raster-saturation": 0.45,
+          "raster-contrast": 0.8,
+          "raster-brightness-max": 0.5,
+          "raster-brightness-min": 0.2,
+          "raster-fade-duration": 0
+        }
+      });
+    }
+  </script>
+
+</body>
+
+</html>

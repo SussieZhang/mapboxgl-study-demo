@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>添加自定义图片及图标</title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        html, body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        #marker{
+            background-image: url(images/qingjiao.png);
+            background-size: cover;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+    </style>
+    <link rel="stylesheet" href="css/mapbox-gl.css" type="text/css"/>
+    <script type="text/javascript" src="js/mapbox-gl.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        var monument = [114.33549, 30.539983];
+        // mapboxgl.accessToken = 'pk.eyJ1IjoiZGFpY29uZ2ppZSIsImEiOiJjamE5ZjYwbjQwZ3p6MzNxOTdoN3JmMjNrIn0.njQpcGgOGi1YPDoNZT58Ig';
+        var map = new mapboxgl.Map({
+            container: 'map', // container id
+            style: { // stylesheet location
+                "version": 8,
+                "sources": {},
+                "layers": []
+            }, 
+            center: [114.33719, 30.539933], // starting position [lng, lat]
+            zoom: 12 // starting zoom
+        });
+        map.on("load",function(){
+            var arcgis_wmts ='http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/WMTS?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ChinaOnlineCommunity&STYLE=default&TILEMATRIXSET=default028mm&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png'
+            var arcgis_layer = {
+                "id": "arcgis_wmts",
+                "type": "raster",
+                "source": {
+                    "type": "raster",
+                    "tiles": [arcgis_wmts],
+                    "zoomOffset": 0,//wmts Capabilities信息中TileMatrix第一个对应的实际多少级
+                    "tileSize": 256
+                }
+            };
+            map.addLayer(arcgis_layer);
+        })
+        
+           map.loadImage('images/xigua.png', function(error, image) {
+                if (error) throw error;
+                map.addImage('xigua', image);
+                map.addLayer({
+                    "id": "points",
+                    "type": "symbol",
+                    "source": {
+                        "type": "geojson",
+                        "data": {
+                            "type": "FeatureCollection",
+                            "features": [{
+                                "type": "Feature",
+                                "geometry": {
+                                    "type": "Point",
+                                    "coordinates": [114.33719, 30.539933]
+                                }
+                            }]
+                        }
+                    },
+                    "layout": {
+                        "icon-image": "xigua",
+                        "icon-size": 0.2
+                    }
+                });
+            });
+
+
+   // create DOM element for the marker
+            var el = document.createElement('div');
+            var dl = document.createElement('div')
+            dl.id = 'marker';
+            el.appendChild(dl)
+   // 创建marker
+             new mapboxgl.Marker(el)
+                .setLngLat(monument)
+                .addTo(map);
+
+    </script>
+</body>
+</html>

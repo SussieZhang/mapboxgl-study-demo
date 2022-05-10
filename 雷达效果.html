@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>雷达效果</title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        html, body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="css/mapbox-gl.css" type="text/css"/>
+    <script type="text/javascript" src="js/0.50.0/mapbox-gl.js"></script>
+    <script src="js/turf.min.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZGRvbmciLCJhIjoiY2phNTk5OHR4M2xhMzJxbnJkdGN3ZTV0eCJ9.R5St4SUyuLiE6l-0dL4MOg';
+        var map = new mapboxgl.Map({
+            container: 'map', // container id
+            style: { // stylesheet location
+                "version": 8,
+                "glyphs": "resource/pbf/{fontstack}/{range}.pbf",
+                "sources": {},
+                "layers": []
+            }, 
+            center: [118.939,32.377], // starting position [lng, lat]
+            zoom: 12 // starting zoom
+        });
+         var arcgis_wmts ='http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/WMTS?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ChinaOnlineCommunity&STYLE=default&TILEMATRIXSET=default028mm&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png'
+            var arcgis_layer = {
+                "id": "arcgis_wmts",
+                "type": "raster",
+                "source": {
+                    "type": "raster",
+                    "tiles": [arcgis_wmts],
+                    "zoomOffset": 0,
+                    "tileSize": 256
+                }
+            };
+       
+        map.on("load",function(){
+            // * 加载底图
+            map.addLayer(arcgis_layer);
+            
+            var mapContainer = map.getCanvasContainer();
+            //设置canvas的宽高
+            var canvas = document.createElement('canvas');
+            canvas.id = 'canvastest';
+            canvas.style.width = map.getCanvas().style.width;
+            canvas.style.height = map.getCanvas().style.height;
+            canvas.style.position = "absolute";
+            canvas.style.display = "none";
+            canvas.width = map.getCanvas().width;
+            canvas.height = map.getCanvas().height;
+            mapContainer.appendChild(canvas);
+
+            context = canvas.getContext("2d");
+            var coordinates = _boundsToCoordinates(map.getBounds());
+            
+            var source = {
+                type: 'canvas',
+                canvas: canvas.id,
+                contextType: "2d",
+                animate: true,
+                coordinates: coordinates
+            };
+            var layer = {
+                "id": canvas.id + "_layer",
+                "source": canvas.id,
+                "type": "raster",
+                "paint": {
+                    "raster-opacity": 1
+                }
+            };
+            map.addSource(canvas.id, source);
+            map.addLayer(layer);
+            var coor = map.project([118.939,32.377])
+            var angle = 0;
+            var x = coor.x
+            var y = coor.y
+            var radius = geoLengthToScreenLength(3)
+            drawRedar()
+            function drawRedar() {
+                var g = canvas.getContext("2d");
+                var diameter = radius * 2,
+                 hueStart = 120,
+                 hueEnd = 170,
+                 hueDiff = Math.abs(hueEnd - hueStart),
+                 width = diameter,
+                 height = diameter;
+                 //canvas.width = diameter;
+                 //canvas.height = diameter;
+                var gradient = g.createLinearGradient(0, 0, 0, 20);
+                gradient.addColorStop(0, 'hsla(' + hueStart + ', ' + 50 + '%, ' + 40 + '%, 0.7)');
+                gradient.addColorStop(0.2, 'hsla(' + hueStart + ', ' + 50 + '%, ' + 40 + '%, 0.5)');
+                gradient.addColorStop(0.4, 'hsla(' + hueStart + ', ' + 50 + '%, ' + 40 + '%, 0.3)');
+                gradient.addColorStop(1, 'hsla(' + hueEnd + ', ' + 50 + '%, ' + 40 + '%, 0.08)');
+
+                g.globalCompositeOperation = 'destination-out';
+                g.fillStyle = 'hsla(0, 0%, 0%, 1)';
+                g.fillRect(x-radius, y-radius, width, height); // 画矩形
+
+                g.globalCompositeOperation = 'lighter';
+                // 画同心圆
+                var i;
+                for (i = 0; i < 4; i++) {
+                    g.beginPath();
+                    g.arc(x, y, ((radius-2) / 4) * (i + 1), 0, Math.PI * 2, false);
+                    g.strokeStyle = 'hsla(' + (hueEnd - (i * (hueDiff / 4))) + ', ' + 50 + '%, ' + 40 + '%, 0.5)';
+                    g.lineWidth = i-0.5;
+                    g.stroke();
+                };
+                // 画十字丝
+                g.beginPath();
+                g.moveTo(x, y - radius - 4);
+                g.lineTo(x, y + radius - 4);
+                g.moveTo(x - radius - 4, y);
+                g.lineTo(x + radius - 4, y);
+                g.strokeStyle = 'hsla(' + ((hueStart + hueEnd) / 2) + ', ' + 50 + '%, ' + 40 + '%, 0.07)';
+                g.stroke();
+                g.save();
+                g.translate(x, y);
+                if (angle <-360)
+                    angle = 0;
+                g.rotate(angle * Math.PI / 180);
+                // 画扫描
+                g.beginPath();
+                g.moveTo(0, 0);
+                g.arc(0, 0, radius, -0.1, 0.2, false);
+                g.closePath();
+                g.fillStyle = gradient;
+                g.fill();
+                g.restore();
+                angle = angle - 2;
+                requestAnimationFrame(drawRedar);
+            }
+        })
+        // * 边界数据转坐标
+        function _boundsToCoordinates(bounds){
+            var barr = bounds.toArray();
+            var minx = barr[0][0];
+            var miny = barr[0][1];
+            var maxx = barr[1][0];
+            var maxy = barr[1][1];
+            var coordinates = [
+                [minx, maxy],
+                [maxx, maxy],
+                [maxx, miny],
+                [minx, miny]
+            ];
+            return coordinates;
+        }
+        // * 地理距离转屏幕距离
+        function geoLengthToScreenLength(distance){
+            var centerPoint = [map.getCenter().lng, map.getCenter().lat]
+            var startPoint = turf.point(centerPoint)
+
+            // 计算点距离distance的点位，返回geometry数据
+            var destination = turf.destination(startPoint,distance,90, {units: 'kilometers'})
+            
+            // 地理坐标转屏幕坐标
+            var startScreenPoint = map.project(centerPoint)
+            var endScreenPoint = map.project(destination.geometry.coordinates)
+            
+            // 计算两个屏幕点之间的距离
+            var dx = startScreenPoint.x - endScreenPoint.x
+            var dy = startScreenPoint.y - endScreenPoint.y
+            var screenLength = Math.sqrt(Math.pow(dx,2)+Math.pow(dy,2))
+            
+            return screenLength
+        }
+        // * 移除雷达图层
+        function removeRadar(){
+            map.removeLayer("canvastest_layer");  
+            map.removeSource("canvastest");
+            document.getElementById('canvastest').remove()
+            
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>沿线飞行</title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        html, body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="css/mapbox-gl.css" type="text/css"/>
+    <script type="text/javascript" src="js/0.50.0/mapbox-gl.js"></script>
+    <script src="js/turf.min.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZGRvbmciLCJhIjoiY2phNTk5OHR4M2xhMzJxbnJkdGN3ZTV0eCJ9.R5St4SUyuLiE6l-0dL4MOg';
+        var map = new mapboxgl.Map({
+            container: 'map', // container id
+            style: { // stylesheet location
+                "version": 8,
+                "glyphs": "resource/pbf/{fontstack}/{range}.pbf",
+                "sources": {},
+                "layers": []
+            }, 
+            center: [118.939,31.577], // starting position [lng, lat]
+            zoom: 8// starting zoom
+        });
+        var arcgis_wmts ='http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/WMTS?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ChinaOnlineCommunity&STYLE=default&TILEMATRIXSET=default028mm&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png'
+        var arcgis_layer = {
+            "id": "arcgis_wmts",
+            "type": "raster",
+            "source": {
+                "type": "raster",
+                "tiles": [arcgis_wmts],
+                "zoomOffset": 0,
+                "tileSize": 256
+            }
+        };
+        map.loadImage('images/plane.png',function(error,image){
+            if(error){}
+            if (error) throw error;
+            map.addImage('plane', image);
+        })
+        map.on("load",function(){
+            // * 加载底图
+            map.addLayer(arcgis_layer);
+            // 起点 
+            var origin = [118.4481,31.9685];
+            // 终点
+            var destination = [119.0228, 31.6286]
+            // 路径
+            var route = {
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            origin,
+                            [119.0056,32.1051],
+                            destination
+                        ]
+                    }
+                }]
+            };
+            // 移动的单点
+            var point = {
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": origin
+                    }
+                }]
+            };
+            // 计算起点与终点的距离
+            var lineDistance = turf.lineDistance(route.features[0],  {units: 'kilometers'});
+
+            var arc = [];
+            // 速度频率
+            var steps = 500;
+            for (var i = 0; i < lineDistance; i += lineDistance / steps) {
+                var segment = turf.along(route.features[0], i,  {units: 'kilometers'});
+                arc.push(segment.geometry.coordinates);
+            }
+            // 更新路线
+            route.features[0].geometry.coordinates = arc;
+            var counter = 0;
+            map.addSource('route', {
+                "type": "geojson",
+                "data": route
+            });
+
+            map.addSource('point', {
+                "type": "geojson",
+                "data": point
+            });
+
+            map.addLayer({
+                "id": "route",
+                "source": "route",
+                "type": "line",
+                "paint": {
+                    "line-width": 2,
+                    "line-color": "#007cbf"
+                }
+            });
+
+            map.addLayer({
+                "id": "point",
+                "source": "point",
+                "type": "symbol",
+                "layout": {
+                    "icon-image": "plane",
+                    "icon-rotate": ["get", "bearing"],
+                    "icon-rotation-alignment": "map",
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true
+                }
+            }) 
+            animate() 
+            function animate(){
+                point.features[0].geometry.coordinates = route.features[0].geometry.coordinates[counter];
+                // 计算地图旋转角度
+                point.features[0].properties.bearing = turf.bearing(
+                    turf.point(route.features[0].geometry.coordinates[counter >= steps ? counter - 1 : counter]),
+                    turf.point(route.features[0].geometry.coordinates[counter >= steps ? counter : counter + 1])
+                );
+                // 更新数据
+                map.getSource('point').setData(point);
+                if (counter < steps) {
+                    requestAnimationFrame(animate);
+                }
+
+                counter = counter + 1;
+            }
+        })
+        
+    </script>
+</body>
+</html>

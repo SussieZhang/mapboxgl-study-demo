@@ -1,2 +1,2 @@
-# mapboxgl-study-demo
-mapboxgl 个人学习示例
+# MapBox-Demo
+ mapbox个人学习示例

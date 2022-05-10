@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>turf缓冲区</title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        html, body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="css/mapbox-gl.css" type="text/css"/>
+    <script type="text/javascript" src="js/mapbox-gl.js"></script>
+    <script src="js/turf.min.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZGRvbmciLCJhIjoiY2phNTk5OHR4M2xhMzJxbnJkdGN3ZTV0eCJ9.R5St4SUyuLiE6l-0dL4MOg';
+        var map = new mapboxgl.Map({
+            container: 'map', 
+            style: { 
+                "version": 8,
+                "sources": {},
+                "layers": []
+            }, 
+            center: [112.939,31.377],
+            zoom: 14
+        });
+		var arcgis_wmts ='http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/WMTS?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ChinaOnlineCommunity&STYLE=default&TILEMATRIXSET=default028mm&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png'
+		var arcgis_layer = {
+			"id": "arcgis_wmts",
+			"type": "raster",
+			"source": {
+				"type": "raster",
+				"tiles": [arcgis_wmts],
+				"zoomOffset": 0,
+				"tileSize": 256
+			}
+		};
+        map.on("load",function(){
+            // * 加载底图
+            map.addLayer(arcgis_layer);
+            // * 点缓冲测试
+            var point = turf.point([112.939,31.377])
+            var pointBuffered = turf.buffer(point, 1, {units:'kilometers'})
+            console.log(pointBuffered)
+           
+            map.addLayer({
+                id:'pointbuffer',
+                type:'fill',
+                source:{
+                    'type': 'geojson',
+                    'data': pointBuffered
+                },
+                paint:{
+                    'fill-color':"red"
+                }
+            })
+            map.addLayer({
+                'id':'point',
+                "type": "circle",
+                'source':{
+                    'type': 'geojson',
+                    'data': {
+                        type:'Feature',
+                        geometry:{
+                            type:'Point',
+                            coordinates:[112.939,31.377]
+                        }
+                    }
+                },
+                "paint": {
+                    "circle-radius": 5,
+                    "circle-color": "#007cbf"
+                }
+            })
+            // 面缓冲测试
+            var polygon = [[[112.959,31.387],[112.949,31.387],[112.949,31.397],[112.959,31.397],[112.959,31.387]]]
+            var line = turf.polygon(polygon)
+            var lineBuffered = turf.buffer(line, 1, {units:'kilometers'})
+            map.addLayer({
+                id:'linebuffer',
+                type:'fill',
+                source:{
+                    'type': 'geojson',
+                    'data': lineBuffered
+                },
+                paint:{
+                    'fill-color':"red",
+                    'fill-opacity':0.5
+                }
+            })
+            map.addLayer({
+                id:'polygon',
+                type:'fill',
+                source:{
+                    'type': 'geojson',
+                    'data': {
+                        type:'Feature',
+                        geometry:{
+                            type:'Polygon',
+                            coordinates:polygon
+                        }
+                    }
+                },
+                paint:{
+                    'fill-color':"yellow",
+                    'fill-opacity':0.5
+                }
+            })
+        })
+        
+    </script>
+</body>
+</html>

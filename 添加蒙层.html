@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>加载背景图层</title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        html, body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="css/mapbox-gl.css" type="text/css"/>
+    <script type="text/javascript" src="js/mapbox-gl.js"></script>
+    <script src="js/jquery.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZGRvbmciLCJhIjoiY2phNTk5OHR4M2xhMzJxbnJkdGN3ZTV0eCJ9.R5St4SUyuLiE6l-0dL4MOg';
+        var map = new mapboxgl.Map({
+            container: 'map', // container id
+            style: { // stylesheet location
+                "version": 8,
+                "sources": {},
+                "layers": []
+            }, 
+            center: [116.71,39.78], // starting position [lng, lat]
+            zoom: 7 // starting zoom
+        });
+        var arcgis_wmts ='http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer/WMTS?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ChinaOnlineCommunity&STYLE=default&TILEMATRIXSET=default028mm&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png'
+            var arcgis_layer = {
+                "id": "arcgis_wmts",
+                "type": "raster",
+                "source": {
+                    "type": "raster",
+                    "tiles": [arcgis_wmts],
+                    "zoomOffset": 0,//wmts Capabilities信息中TileMatrix第一个对应的实际多少级
+                    "tileSize": 256
+                }
+            };
+        map.on("load",function(){
+            map.addLayer(arcgis_layer);
+            // 加载背景图层
+            var backgroundLayer = {
+                "id": "background",
+                "type": "background",
+                "paint": {
+                    "background-color": "#1f6fb5",
+                    "background-opacity":0.5
+                }
+            }
+            map.addLayer(backgroundLayer)
+        })
+        
+    </script>
+</body>
+</html>
